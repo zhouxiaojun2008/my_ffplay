@@ -160,10 +160,24 @@ UINT Thread_Play(LPVOID lpParam){
 	return 0;
 }
 
+void ffmpeg_log_callback(void* avcl, int level, const char* pFormat, va_list vl)
+{
+#if 0
+    char buf[256] = { 0 };
+    vsnprintf(buf, 255, pFormat, vl);
+    printf("%s", buf);
+#endif
+}
+
 // CffplaymfcDlg 消息处理程序
 
 BOOL CffplaymfcDlg::OnInitDialog()
 {
+#ifdef _DEBUG
+    AllocConsole();
+    fprintf(stderr, "OnInitDialog\n");
+#endif
+
 	CDialogEx::OnInitDialog();
 
 	// 将“关于...”菜单项添加到系统菜单中。
@@ -211,6 +225,9 @@ BOOL CffplaymfcDlg::OnInitDialog()
 		OnBnClickedStart();
 	}
 
+    m_inputurl.SetWindowText(_T("http://ivi.bupt.edu.cn/hls/cctv5hd.m3u8"));
+
+    av_log_set_callback(ffmpeg_log_callback);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -631,6 +648,9 @@ void CffplaymfcDlg::OnIdcancel()
 		OnBnClickedStop();
 		//释放子窗口
 		FreeSubWindow();
+#ifdef _DEBUG
+        FreeConsole();
+#endif
 		CDialogEx::OnCancel();
 	}
 }

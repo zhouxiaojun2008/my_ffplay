@@ -2906,23 +2906,23 @@ static int read_thread(void *arg)
 		st_index[AVMEDIA_TYPE_VIDEO] =
 		av_find_best_stream(ic, AVMEDIA_TYPE_VIDEO,
 		wanted_stream[AVMEDIA_TYPE_VIDEO], -1, NULL, 0);
-	//int video_index = st_index[AVMEDIA_TYPE_VIDEO];
-	//printf("视频编码器名称：%s\n",ic->streams[video_index]->codec->codec_name);
-	//printf("视频宽：%d\n",ic->streams[video_index]->codec->width);
-	//printf("视频高：%d\n",ic->streams[video_index]->codec->height);
-	//zhenlv=(ic->streams[video_index]->codec->time_base.den)/(ic->streams[video_index]->codec->time_base.num);
-	//printf("视频帧率：%f\n",zhenlv);
+	int video_index = st_index[AVMEDIA_TYPE_VIDEO];
+	printf("视频编码器名称：%s\n",ic->streams[video_index]->codec->codec_name);
+	printf("视频宽：%d\n",ic->streams[video_index]->codec->width);
+	printf("视频高：%d\n",ic->streams[video_index]->codec->height);
+	zhenlv=(ic->streams[video_index]->codec->time_base.den)/(ic->streams[video_index]->codec->time_base.num);
+	printf("视频帧率：%f\n",zhenlv);
 	if (!audio_disable)
 		st_index[AVMEDIA_TYPE_AUDIO] =
 		av_find_best_stream(ic, AVMEDIA_TYPE_AUDIO,
 		wanted_stream[AVMEDIA_TYPE_AUDIO],
 		st_index[AVMEDIA_TYPE_VIDEO],
 		NULL, 0);
-	//int audio_index = st_index[AVMEDIA_TYPE_AUDIO];
-	//printf("音频编码器名称：%s\n",ic->streams[audio_index]->codec->codec_name);
-	//printf("采样率：%d\n",ic->streams[audio_index]->codec->sample_rate);
-	//printf("帧大小：%d\n",ic->streams[audio_index]->codec->frame_size);
-	//printf("声道数：%d\n",ic->streams[audio_index]->codec->channels);
+	int audio_index = st_index[AVMEDIA_TYPE_AUDIO];
+	printf("音频编码器名称：%s\n",ic->streams[audio_index]->codec->codec_name);
+	printf("采样率：%d\n",ic->streams[audio_index]->codec->sample_rate);
+	printf("帧大小：%d\n",ic->streams[audio_index]->codec->frame_size);
+	printf("声道数：%d\n",ic->streams[audio_index]->codec->channels);
 	if (!video_disable)
 		st_index[AVMEDIA_TYPE_SUBTITLE] =
 		av_find_best_stream(ic, AVMEDIA_TYPE_SUBTITLE,
@@ -3827,19 +3827,12 @@ int ffmfc_play(LPVOID lpParam)
 	char **opt_argv=NULL;
 
 	parse_options(NULL, opt_argc, opt_argv, options, opt_input_file);
-	/*
-	if (!input_filename) 
-	{
-	show_usage();
-	fprintf(stderr, "An input file must be specified\n");
-	fprintf(stderr, "Use -h to get full help or, even better, run 'man %s'\n", program_name);
-	exit(1);
-	}
-	*/
+	
 	if (display_disable) 
 	{
 		video_disable = 1;
 	}
+
 	//设置为自动退出-------------------
 	//解码图片的时候，会自动退出，所以先不设置了~
 	//autoexit=1;

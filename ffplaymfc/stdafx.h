@@ -44,7 +44,9 @@
 #define INT64_MIN       (-9223372036854775807i64 - 1)
 #define INT64_MAX       9223372036854775807i64
 
-
+#ifdef _DEBUG
+#pragma comment( linker, "/subsystem:console /entry:wWinMainCRTStartup" )
+#endif
 
 
 #ifdef _UNICODE
