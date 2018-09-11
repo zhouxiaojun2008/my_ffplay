@@ -1341,6 +1341,7 @@ static int video_open(VideoState *is, int force_set_video_mode)
 	else                flags |= SDL_RESIZABLE;
 
 	if (is_full_screen && fs_screen_width) {
+        SDL_putenv("SDL_VIDEO_WINDOW_POS=0,0");//设置窗口显示的位置
 		w = fs_screen_width;
 		h = fs_screen_height;
 	} else if (!is_full_screen && screen_width) {
@@ -1577,7 +1578,7 @@ retry:
 				goto display;
 
 			/* compute nominal last_duration */
-			last_duration = vp->pts - is->frame_last_pts;
+			last_duration = vp->pts - is->frame_last_pts; //单位都是s
 			if (last_duration > 0 && last_duration < 10.0) {
 				/* if duration of the last frame was sane, update last_duration in video state */
 				is->frame_last_duration = last_duration;
@@ -1849,7 +1850,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
 
 			pict.linesize[0] = vp->bmp->pitches[0];
 			pict.linesize[1] = vp->bmp->pitches[2];
-			pict.linesize[2] = vp->bmp->pitches[1];
+			pict.linesize[2] = vp->bmp->pitches[1];   //SDL_YV12_OVERLAY模式
 			break;
 		case SHOW_MODE_Y:	pict.data[0] = vp->bmp->pixels[0];
 			pict.linesize[0] = vp->bmp->pitches[0];
@@ -3397,8 +3398,8 @@ static void event_loop(VideoState *cur_stream)
 				do_exit(cur_stream);
 				break;
 			}
-			switch (event.key.keysym.sym) {
-			case SDLK_ESCAPE:
+			switch (event.key.keysym.sym) { 
+            case SDLK_ESCAPE:
 			case SDLK_q:
 				do_exit(cur_stream);
 				dlg->OnBnClickedStop();
@@ -3530,7 +3531,7 @@ do_seek:
 			screen_width  = cur_stream->width  = event.resize.w;
 			screen_height = cur_stream->height = event.resize.h;
 			//刷新--------------------
-			int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
+			int bgcolor = SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
 			fill_rectangle(screen,cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height,bgcolor);
 			SDL_UpdateRect(screen, cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height);
 			//--
