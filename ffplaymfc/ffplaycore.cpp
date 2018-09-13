@@ -232,7 +232,7 @@ typedef struct VideoState {
 #endif
 
 	char filename[1024];
-	int width, height, xleft, ytop;
+	int width, height, xleft, ytop;  //width,height在videoopen的时候赋值为窗口的高度宽度
 	int step;
 
 #if CONFIG_AVFILTER
@@ -265,7 +265,7 @@ static const char *input_filename;
 static const char *window_title;
 static int fs_screen_width;
 static int fs_screen_height;
-static int screen_width  = 0;
+static int screen_width  = 0; //在SDL_VIDEORESIZE响应中赋值为当前窗口的宽度，SDL_VIDEORESIZE消息在窗口创建的时候，以及拉伸的时候都会有回调
 static int screen_height = 0;
 static int audio_disable ;
 static int video_disable ;
@@ -292,6 +292,8 @@ static int decoder_reorder_pts = -1;
 static int autoexit;
 static int exit_on_keydown;
 static int exit_on_mousedown;
+static int g_mousedown_state;  //最后一次鼠标按键的状态 初始值0  弹起 1 按下2
+DWORD g_last_released;  //最后一次鼠标弹起的时间
 static int loop = 1;
 static int framedrop = -1;
 static int infinite_buffer = -1;
@@ -323,7 +325,7 @@ static int exit_remark=0;
 
 //是否拉伸-------------------------
 #define FFMFC_STRETCH_EVENT (SDL_USEREVENT + 5)
-int is_stretch=1;
+int is_stretch=0;
 //---------------------------------
 static SDL_Surface *screen;
 
@@ -1024,7 +1026,8 @@ static void calculate_display_rect(SDL_Rect *rect, int scr_xleft, int scr_ytop, 
 		aspect_ratio = 1.0;
 	aspect_ratio *= (float)vp->width / (float)vp->height;
 
-	/* XXX: we suppose the screen has a 1.0 pixel ratio */
+	//根据传入的参数高度乘以比例得到宽度
+
 	height = scr_height;
 	width = ((int)rintx(height * aspect_ratio)) & ~1;
 	if (width > scr_width) {
@@ -1338,13 +1341,14 @@ static int video_open(VideoState *is, int force_set_video_mode)
 	SDL_Rect rect;
 
 	if (is_full_screen) flags |= SDL_FULLSCREEN;
-	else                flags |= SDL_RESIZABLE;
+	else 
+        flags |= SDL_RESIZABLE;
 
+    SDL_putenv("SDL_VIDEO_WINDOW_POS=1,20");//设置窗口显示的位置
 	if (is_full_screen && fs_screen_width) {
-        SDL_putenv("SDL_VIDEO_WINDOW_POS=0,0");//设置窗口显示的位置
 		w = fs_screen_width;
 		h = fs_screen_height;
-	} else if (!is_full_screen && screen_width) {
+	} else if (!is_full_screen && screen_width) {     //screen_width是窗口的宽带，随着窗口的拉伸实时变化
 		w = screen_width;
 		h = screen_height;
 	} else if (vp->width) {
@@ -3400,6 +3404,11 @@ static void event_loop(VideoState *cur_stream)
 			}
 			switch (event.key.keysym.sym) { 
             case SDLK_ESCAPE:
+                if (is_full_screen){ //是全屏，则退出全屏
+                    toggle_full_screen(cur_stream);
+                    cur_stream->force_refresh = 1;
+                    break;
+                }                
 			case SDLK_q:
 				do_exit(cur_stream);
 				dlg->OnBnClickedStop();
@@ -3493,51 +3502,64 @@ do_seek:
 				do_exit(cur_stream);
 				break;
 			}
-		case SDL_MOUSEMOTION:
-			if (event.type == SDL_MOUSEBUTTONDOWN) {
-				x = event.button.x;
-			} else {
-				if (event.motion.state != SDL_PRESSED)
-					break;
-				x = event.motion.x;
-			}
-			if (seek_by_bytes || cur_stream->ic->duration <= 0) {
-				uint64_t size =  avio_size(cur_stream->ic->pb);
-				stream_seek(cur_stream, size*x/cur_stream->width, 0, 1);
-			} else {
-				int64_t ts;
-				int ns, hh, mm, ss;
-				int tns, thh, tmm, tss;
-				tns  = cur_stream->ic->duration / 1000000LL;
-				thh  = tns / 3600;
-				tmm  = (tns % 3600) / 60;
-				tss  = (tns % 60);
-				frac = x / cur_stream->width;
-				ns   = frac * tns;
-				hh   = ns / 3600;
-				mm   = (ns % 3600) / 60;
-				ss   = (ns % 60);
-				fprintf(stderr, "Seek to %2.0f%% (%2d:%02d:%02d) of total duration (%2d:%02d:%02d)       \n", frac*100,
-					hh, mm, ss, thh, tmm, tss);
-				ts = frac * cur_stream->ic->duration;
-				if (cur_stream->ic->start_time != AV_NOPTS_VALUE)
-					ts += cur_stream->ic->start_time;
-				stream_seek(cur_stream, ts, 0, 0);
-			}
-			break;
-		case SDL_VIDEORESIZE:{
+            if (event.button.button == SDL_BUTTON_LEFT)
+            {
+                g_mousedown_state = 2;
+                if (GetTickCount() - g_last_released < 200) {//双击
+                    toggle_full_screen(cur_stream);
+                    cur_stream->force_refresh = 1;
+                }
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            if (event.button.button == SDL_BUTTON_LEFT)
+            {
+                g_mousedown_state = 1;
+                g_last_released = GetTickCount();
+            }
+            else
+            {
+                x = event.motion.x;
+                if (seek_by_bytes || cur_stream->ic->duration <= 0) {
+                    uint64_t size = avio_size(cur_stream->ic->pb);
+                    stream_seek(cur_stream, size*x/cur_stream->width, 0, 1);
+                } else {
+                    int64_t ts;
+                    int ns, hh, mm, ss;
+                    int tns, thh, tmm, tss;
+                    tns  = cur_stream->ic->duration / 1000000LL;
+                    thh  = tns / 3600;
+                    tmm  = (tns % 3600) / 60;
+                    tss  = (tns % 60);
+                    frac = x / cur_stream->width;
+                    ns   = frac * tns;
+                    hh   = ns / 3600;
+                    mm   = (ns % 3600) / 60;
+                    ss   = (ns % 60);
+                    fprintf(stderr, "Seek to %2.0f%% (%2d:%02d:%02d) of total duration (%2d:%02d:%02d)       \n", frac*100,
+                        hh, mm, ss, thh, tmm, tss);
+                    ts = frac * cur_stream->ic->duration;
+                    if (cur_stream->ic->start_time != AV_NOPTS_VALUE)
+                        ts += cur_stream->ic->start_time;
+                    stream_seek(cur_stream, ts, 0, 0);
+                }
+            }
+            break;
+		case SDL_VIDEORESIZE:
+        {
+            if (is_full_screen) //全屏已经额外有代码初值了
+                break;
 			screen = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
-				SDL_HWSURFACE|SDL_RESIZABLE|SDL_ASYNCBLIT|SDL_HWACCEL);
+                SDL_HWSURFACE | SDL_RESIZABLE | SDL_ASYNCBLIT | SDL_HWACCEL);
 			screen_width  = cur_stream->width  = event.resize.w;
 			screen_height = cur_stream->height = event.resize.h;
 			//刷新--------------------
-			int bgcolor = SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
+			int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
 			fill_rectangle(screen,cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height,bgcolor);
 			SDL_UpdateRect(screen, cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height);
-			//--
-			cur_stream->force_refresh = 1;
+			cur_stream->force_refresh = 1;            
 			break;
-			}
+        }
 		case SDL_QUIT:
 		case FF_QUIT_EVENT:
 			do_exit(cur_stream);
@@ -3564,14 +3586,14 @@ do_seek:
 			}
 			break;
 							   }
-		case FFMFC_STRETCH_EVENT:{
+		case FFMFC_STRETCH_EVENT:
+        {
 			//刷新--------------------
 			int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);  //黑色
 			fill_rectangle(screen,cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height,bgcolor);
 			SDL_UpdateRect(screen, cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height);
-			//--
 			break;
-							  }
+        }
 		default:
 			break;
 		}

@@ -226,7 +226,7 @@ BOOL CffplaymfcDlg::OnInitDialog()
 	}
 
     //m_inputurl.SetWindowText(_T("http://ivi.bupt.edu.cn/hls/cctv5hd.m3u8"));
-    m_inputurl.SetWindowText(_T("http://127.0.0.1/localtest.m3u8"));
+    m_inputurl.SetWindowText(_T("http://127.0.0.1/youku_long.mp4"));
 
     av_log_set_callback(ffmpeg_log_callback);
 
