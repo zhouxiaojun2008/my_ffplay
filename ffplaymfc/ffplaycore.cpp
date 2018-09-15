@@ -303,7 +303,9 @@ static const char *subtitle_codec_name;
 static const char *video_codec_name;
 static int rdftspeed = 20;
 #if CONFIG_AVFILTER
-static char *vfilters = NULL;
+//static char *vfilters = "movie=aqiyi.png[wm];[in][wm]overlay=10:10[out]"; // 左上角
+static char *vfilters = "movie=aqiyi.png[wm];[in][wm]overlay=main_w-overlay_w-10:10[out]"; //右上角
+//static char *vfilters = NULL;
 #endif
 
 /* current context */
