@@ -3878,6 +3878,9 @@ int ffmfc_play(LPVOID lpParam)
 #endif
 	//------SDL------------------------
 	//初始化
+
+	SDL_putenv("SDL_AUDIODRIVER=dsound");
+	
 	if (SDL_Init (flags)) {
 		AfxMessageBox(_T("Could not initialize SDL "));
 		exit(1);
