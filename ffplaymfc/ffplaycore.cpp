@@ -1840,7 +1840,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
 		AVPicture pict = { { 0 } };
 #if CONFIG_AVFILTER
 		avfilter_unref_bufferp(&vp->picref);
-		vp->picref = src_frame->opaque;
+		vp->picref = (AVFilterBufferRef*)src_frame->opaque;
 #endif
 
 		/* get a pointer on the bitmap */
@@ -1870,7 +1870,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
 #if CONFIG_AVFILTER
 		// FIXME use direct rendering
 		av_picture_copy(&pict, (AVPicture *)src_frame,
-			src_frame->format, vp->width, vp->height);
+			(AVPixelFormat)src_frame->format, vp->width, vp->height);
 #else
 		//sws_flags = av_get_int(sws_opts, "sws_flags", NULL);
 		is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
@@ -2086,7 +2086,7 @@ static int video_thread(void *arg)
 	AVFilterContext *filt_out = NULL, *filt_in = NULL;
 	int last_w = 0;
 	int last_h = 0;
-	enum AVPixelFormat last_format = -2;
+	enum AVPixelFormat last_format = (AVPixelFormat )- 2;
 
 	if (codec->codec->capabilities & CODEC_CAP_DR1) {
 		is->use_dr1 = 1;
@@ -2140,12 +2140,12 @@ static int video_thread(void *arg)
 		frame->pts = pts_int;
 		frame->sample_aspect_ratio = av_guess_sample_aspect_ratio(is->ic, is->video_st, frame);
 		if (is->use_dr1 && frame->opaque) {
-			FrameBuffer      *buf = frame->opaque;
+			FrameBuffer      *buf = (FrameBuffer*)frame->opaque;
 			AVFilterBufferRef *fb = avfilter_get_video_buffer_ref_from_arrays(
 				frame->data, frame->linesize,
 				AV_PERM_READ | AV_PERM_PRESERVE,
 				frame->width, frame->height,
-				frame->format);
+				(AVPixelFormat)frame->format);
 
 			avfilter_copy_frame_props(fb, frame);
 			fb->buf->priv           = buf;

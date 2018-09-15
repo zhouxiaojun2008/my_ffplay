@@ -43,7 +43,6 @@ extern "C"
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
 #include "libswresample/swresample.h"
-}
 
 #if CONFIG_AVFILTER
 # include "libavfilter/avcodec.h"
@@ -52,6 +51,9 @@ extern "C"
 # include "libavfilter/buffersink.h"
 # include "libavfilter/buffersrc.h"
 #endif
+}
+
+
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_thread.h"
