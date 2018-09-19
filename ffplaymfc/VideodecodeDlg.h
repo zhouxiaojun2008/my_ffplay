@@ -40,4 +40,5 @@ public:
 	CListCtrl m_videodecodelist;
 
 	void OnCustomdrawMyList ( NMHDR* pNMHDR, LRESULT* pResult );
+    afx_msg void OnSize(UINT nType, int cx, int cy);
 };

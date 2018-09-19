@@ -43,6 +43,7 @@ void VideodecodeDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(VideodecodeDlg, CDialogEx)
 	ON_NOTIFY ( NM_CUSTOMDRAW,IDC_VIDEODECODE_LIST, VideodecodeDlg::OnCustomdrawMyList )
+    ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -54,6 +55,17 @@ BOOL VideodecodeDlg::OnInitDialog()
 	DWORD dwExStyle=LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES|LVS_EX_HEADERDRAGDROP|LVS_EX_ONECLICKACTIVATE;
 	//报表风格；单行选择；高亮显示选择行
 
+
+    MoveWindow(GetSystemMetrics(SM_CXSCREEN)/2 + 400, 200, 400, 300);
+    
+
+    CRect rc;
+    GetClientRect(&rc);
+    GetDlgItem(IDC_VIDEODECODE_LIST)->MoveWindow(rc);//用对话框客户区大小重新定义列表控件的位置
+
+    m_videodecodelist.GetClientRect(&rc);
+    int nColumnWidth = rc.Width() / 5;
+
 	//多国语言支持
 	CString resloader;
 	resloader.LoadString(IDS_VIDEODECODE);
@@ -62,16 +74,16 @@ BOOL VideodecodeDlg::OnInitDialog()
 	m_videodecodelist.ModifyStyle(0,LVS_SINGLESEL|LVS_REPORT|LVS_SHOWSELALWAYS);
 	m_videodecodelist.SetExtendedStyle(dwExStyle);
 	resloader.LoadString(IDS_VIDEODECODE_NUM);
-	m_videodecodelist.InsertColumn(0,resloader,LVCFMT_CENTER,50,0);
+    m_videodecodelist.InsertColumn(0, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_FRAMETYPE);
-	m_videodecodelist.InsertColumn(1,resloader,LVCFMT_CENTER,50,0);
+    m_videodecodelist.InsertColumn(1, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_KEYFRAME);
-	m_videodecodelist.InsertColumn(2,resloader,LVCFMT_CENTER,50,0);
+    m_videodecodelist.InsertColumn(2, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_CODENUM);
-	m_videodecodelist.InsertColumn(3,resloader,LVCFMT_CENTER,50,0);
+    m_videodecodelist.InsertColumn(3, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_PTS);
-	m_videodecodelist.InsertColumn(4,resloader,LVCFMT_CENTER,50,0);
-
+    m_videodecodelist.InsertColumn(4, resloader, LVCFMT_CENTER, nColumnWidth, 0);
+  
 	return TRUE;
 }
 
@@ -132,4 +144,30 @@ void VideodecodeDlg::OnCustomdrawMyList ( NMHDR* pNMHDR, LRESULT* pResult )
 
 
 	}
+}
+
+void VideodecodeDlg::OnSize(UINT nType, int cx, int cy)
+{
+    CDialogEx::OnSize(nType, cx, cy);
+    
+    // TODO:  在此处添加消息处理程序代码
+
+    CWnd *pWnd;
+    pWnd = GetDlgItem(IDC_VIDEODECODE_LIST);
+    if (pWnd&&nType != SIZE_MINIMIZED)//当对话框工程刚打开时不执行此代码
+    {
+        CRect rc;
+        GetClientRect(&rc);
+        pWnd->MoveWindow(rc);
+
+        m_videodecodelist.GetClientRect(&rc);
+        int nColumnWidth = rc.Width() / 5;
+
+        m_videodecodelist.SetColumnWidth(0, nColumnWidth);
+        m_videodecodelist.SetColumnWidth(1, nColumnWidth);
+        m_videodecodelist.SetColumnWidth(2, nColumnWidth);
+        m_videodecodelist.SetColumnWidth(3, nColumnWidth);
+        m_videodecodelist.SetColumnWidth(4, nColumnWidth);
+    }
+
 }
