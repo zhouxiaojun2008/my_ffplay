@@ -521,7 +521,7 @@ int ffmfc_param_packet(VideoState *is,AVPacket *packet){
 //视频帧参数提取
 int ffmfc_param_vframe(VideoState *is,AVFrame *pFrame,AVPacket *packet){
 	//--------------------------------------------------------------------
-	CString key_frame,pict_type,reference,f_index,pts,dts,codednum;
+	CString key_frame,pict_type,reference,f_index,pts,dts,codednum,displaynum;
 	AVFormatContext *pFormatCtx = is->ic;
 	int video_stream=is->video_stream;
 	AVCodecContext *pCodecCtx = pFormatCtx->streams[video_stream]->codec;
@@ -579,17 +579,21 @@ int ffmfc_param_vframe(VideoState *is,AVFrame *pFrame,AVPacket *packet){
 	}
 
 	reference.Format(_T("%d"),pFrame->reference);
-	pts.Format(_T("%d"),pFrame->pkt_pts);
-	dts.Format(_T("%d"),pFrame->pkt_dts);
+	pts.Format(_T("%d"),pFrame->pts);
+	//dts.Format(_T("%d"),pFrame->pkt_dts);
 	codednum.Format(_T("%d"),pFrame->coded_picture_number);
+    displaynum.Format(_T("%d"), pFrame->display_picture_number);
 
 	//插入表格------------------------
 	dlg->vddlg->m_videodecodelist.InsertItem(&lvitem);
 	dlg->vddlg->m_videodecodelist.SetItemText(nIndex,1,pict_type);
 	dlg->vddlg->m_videodecodelist.SetItemText(nIndex,2,key_frame);
 	dlg->vddlg->m_videodecodelist.SetItemText(nIndex,3,codednum);
-	dlg->vddlg->m_videodecodelist.SetItemText(nIndex,4,pts);
+    dlg->vddlg->m_videodecodelist.SetItemText(nIndex,4,displaynum);
+	dlg->vddlg->m_videodecodelist.SetItemText(nIndex,5,pts);
+    //dlg->vddlg->m_videodecodelist.SetItemText(nIndex,6,dts);
 	dlg->vddlg->m_videodecodelist.SendMessage(WM_VSCROLL, SB_BOTTOM, NULL);
+
 	vframe_index++;
 	return 0;
 }

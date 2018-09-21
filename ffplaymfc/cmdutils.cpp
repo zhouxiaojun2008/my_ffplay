@@ -1585,7 +1585,7 @@ int codec_get_buffer(AVCodecContext *s, AVFrame *frame)
     frame->opaque        = buf;
     frame->type          = FF_BUFFER_TYPE_USER;
     frame->extended_data = frame->data;
-    frame->pkt_pts       = s->pkt ? s->pkt->pts : AV_NOPTS_VALUE;
+    //frame->pkt_pts       = s->pkt ? s->pkt->pts : AV_NOPTS_VALUE;
     frame->width         = buf->w;
     frame->height        = buf->h;
     frame->format        = buf->pix_fmt;

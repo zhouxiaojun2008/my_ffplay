@@ -52,11 +52,11 @@ BOOL VideodecodeDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 	//整行选择；有表格线；表头；单击激活
-	DWORD dwExStyle=LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES|LVS_EX_HEADERDRAGDROP|LVS_EX_ONECLICKACTIVATE;
+    DWORD dwExStyle = LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP | LVS_EX_ONECLICKACTIVATE | LVS_EX_DOUBLEBUFFER;
 	//报表风格；单行选择；高亮显示选择行
 
 
-    MoveWindow(GetSystemMetrics(SM_CXSCREEN)/2 + 400, 200, 400, 300);
+    MoveWindow(GetSystemMetrics(SM_CXSCREEN)/2 + 400, 200, 500, 300);
     
 
     CRect rc;
@@ -64,7 +64,7 @@ BOOL VideodecodeDlg::OnInitDialog()
     GetDlgItem(IDC_VIDEODECODE_LIST)->MoveWindow(rc);//用对话框客户区大小重新定义列表控件的位置
 
     m_videodecodelist.GetClientRect(&rc);
-    int nColumnWidth = rc.Width() / 5;
+    int nColumnWidth = rc.Width() / 6;
 
 	//多国语言支持
 	CString resloader;
@@ -73,6 +73,7 @@ BOOL VideodecodeDlg::OnInitDialog()
 
 	m_videodecodelist.ModifyStyle(0,LVS_SINGLESEL|LVS_REPORT|LVS_SHOWSELALWAYS);
 	m_videodecodelist.SetExtendedStyle(dwExStyle);
+
 	resloader.LoadString(IDS_VIDEODECODE_NUM);
     m_videodecodelist.InsertColumn(0, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_FRAMETYPE);
@@ -81,8 +82,12 @@ BOOL VideodecodeDlg::OnInitDialog()
     m_videodecodelist.InsertColumn(2, resloader, LVCFMT_CENTER, nColumnWidth, 0);
 	resloader.LoadString(IDS_VIDEODECODE_CODENUM);
     m_videodecodelist.InsertColumn(3, resloader, LVCFMT_CENTER, nColumnWidth, 0);
-	resloader.LoadString(IDS_VIDEODECODE_PTS);
+    resloader.LoadString(IDS_VIDEODECODE_DCODENUM);
     m_videodecodelist.InsertColumn(4, resloader, LVCFMT_CENTER, nColumnWidth, 0);
+	resloader.LoadString(IDS_VIDEODECODE_PTS);
+    m_videodecodelist.InsertColumn(5, resloader, LVCFMT_CENTER, nColumnWidth, 0);
+    //resloader.LoadString(IDS_VIDEODECODE_DTS);
+    //m_videodecodelist.InsertColumn(6, resloader, LVCFMT_CENTER, nColumnWidth, 0);
   
 	return TRUE;
 }
@@ -113,31 +118,29 @@ void VideodecodeDlg::OnCustomdrawMyList ( NMHDR* pNMHDR, LRESULT* pResult )
 	}
 	else if ( (CDDS_ITEMPREPAINT | CDDS_SUBITEM) == pLVCD->nmcd.dwDrawStage )
 	{
-
 		COLORREF clrNewTextColor, clrNewBkColor;
 
+        clrNewBkColor = RGB(255,255,255);
 		int    nItem = static_cast<int>( pLVCD->nmcd.dwItemSpec );
 
 		CString strTemp = m_videodecodelist.GetItemText(nItem,1);
 		if(strTemp.Compare(_T("I"))==0){
-			clrNewTextColor = RGB(0,0,0);		//Set the text
-			clrNewBkColor = RGB(255,0,0);		//背景设置成红色
+            clrNewTextColor = RGB(0, 0, 0);		//Set the text
+            clrNewBkColor = RGB(255, 0, 0);
 		}
+
 		else if(strTemp.Compare(_T("P"))==0){
-			clrNewTextColor = RGB(0,0,0);		
-			clrNewBkColor = RGB(0,255,255);		//背景设置成青色
+            clrNewTextColor = RGB(0, 255, 255);
 		}
 		else if(strTemp.Compare(_T("B"))==0){
-			clrNewTextColor = RGB(0,0,0);		
-			clrNewBkColor = RGB(0,255,0);		//背景设置成绿色
+            clrNewTextColor = RGB(0,255, 0);
+			
 		}else{
-			clrNewTextColor = RGB(0,0,0);		
-			clrNewBkColor = RGB(255,255,255);
+			clrNewTextColor = RGB(0,0,0);
 		}
 
-		pLVCD->clrText = clrNewTextColor;
-		pLVCD->clrTextBk = clrNewBkColor;
-
+        pLVCD->clrText = clrNewTextColor;
+        pLVCD->clrTextBk = clrNewBkColor;
 
 		// Tell Windows to paint the control itself.
 		*pResult = CDRF_DODEFAULT;
@@ -161,13 +164,16 @@ void VideodecodeDlg::OnSize(UINT nType, int cx, int cy)
         pWnd->MoveWindow(rc);
 
         m_videodecodelist.GetClientRect(&rc);
-        int nColumnWidth = rc.Width() / 5;
+        int nColumnWidth = rc.Width() / 6;
 
         m_videodecodelist.SetColumnWidth(0, nColumnWidth);
         m_videodecodelist.SetColumnWidth(1, nColumnWidth);
         m_videodecodelist.SetColumnWidth(2, nColumnWidth);
         m_videodecodelist.SetColumnWidth(3, nColumnWidth);
         m_videodecodelist.SetColumnWidth(4, nColumnWidth);
+        m_videodecodelist.SetColumnWidth(5, nColumnWidth);
+        //m_videodecodelist.SetColumnWidth(6, nColumnWidth);
     }
 
 }
+
