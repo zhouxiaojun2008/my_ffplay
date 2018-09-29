@@ -292,7 +292,9 @@ static int decoder_reorder_pts = -1;
 static int autoexit;
 static int exit_on_keydown;
 static int exit_on_mousedown;
+static long long g_display_frame_num = 0;
 static int g_mousedown_state;  //最后一次鼠标按键的状态 初始值0  弹起 1 按下2
+static int g_volume = 64;
 DWORD g_last_released;  //最后一次鼠标弹起的时间
 static int loop = 1;
 static int framedrop = -1;
@@ -578,11 +580,15 @@ int ffmfc_param_vframe(VideoState *is,AVFrame *pFrame,AVPacket *packet){
 		pict_type.Format(_T("Unknown"));
 	}
 
+    if (g_display_frame_num == -1)
+        g_display_frame_num = pFrame->coded_picture_number;
+
 	reference.Format(_T("%d"),pFrame->reference);
 	pts.Format(_T("%d"),pFrame->pts);
-	//dts.Format(_T("%d"),pFrame->pkt_dts);
+	//dts.Format(_T("%d"),pFrame->pkt_dts); pkt_dts 值并不对， 在有B帧的情况下不可能是顺序增长的
 	codednum.Format(_T("%d"),pFrame->coded_picture_number);
-    displaynum.Format(_T("%d"), pFrame->display_picture_number);
+    //displaynum.Format(_T("%d"), pFrame->display_picture_number);
+    displaynum.Format(_T("%d"), g_display_frame_num++);
 
 	//插入表格------------------------
 	dlg->vddlg->m_videodecodelist.InsertItem(&lvitem);
@@ -1930,7 +1936,7 @@ static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacke
 		is->frame_timer = (double)av_gettime() / 1000000.0;
 		is->frame_last_dropped_pts = AV_NOPTS_VALUE;
 		SDL_UnlockMutex(is->pictq_mutex);
-
+        g_display_frame_num = -1;
 		return 0;
 	}
 	//解码
@@ -1938,6 +1944,10 @@ static int get_video_frame(VideoState *is, AVFrame *frame, int64_t *pts, AVPacke
 		return 0;
 
 	if (got_picture) {
+
+        if (frame->pts == AV_NOPTS_VALUE)   //加上去，解码对话框可以显示pts，否则都是0
+            frame->pts = av_frame_get_best_effort_timestamp(frame)*av_q2d(is->video_st->time_base) * 1000;
+
 		//注意：此处设置MFC参数！
 		ffmfc_param_vframe(is,frame,pkt);
 		//--------------------------
@@ -2380,7 +2390,7 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
 			if (flush_complete)
 				break;
 			new_packet = 0;
-			len1 = avcodec_decode_audio4(dec, is->frame, &got_frame, pkt_temp);
+			len1 = avcodec_decode_audio4(dec, is->frame, &got_frame, pkt_temp);   //364个字节解码
 			if (len1 < 0) {
 				/* if error, we skip the frame */
 				pkt_temp->size = 0;
@@ -2402,8 +2412,8 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
 				continue;
 			}
 			data_size = av_samples_get_buffer_size(NULL, dec->channels,
-				is->frame->nb_samples,
-				dec->sample_fmt, 1);
+				is->frame->nb_samples, //一个音频帧里面有多少个采样
+				dec->sample_fmt, 1);  //channels*nb_samples* 单个采样的字符数  datasize是解码后的未压缩的音频长度 16384
 
 			dec_channel_layout =
 				(dec->channel_layout && dec->channels == av_get_channel_layout_nb_channels(dec->channel_layout)) ?
@@ -2442,7 +2452,7 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
 							break;
 					}
 				}
-				len2 = swr_convert(is->swr_ctx, out, out_count, in, is->frame->nb_samples);
+				len2 = swr_convert(is->swr_ctx, out, out_count, in, is->frame->nb_samples);  //重采样   后面两个是输入参数， nb_samples是一帧有多少个采样，前面两个是内存空间的大小
 				if (len2 < 0) {
 					fprintf(stderr, "swr_convert() failed\n");
 					break;
@@ -2488,7 +2498,7 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
 			SDL_CondSignal(is->continue_read_thread);
 
 		/* read next packet */
-		if ((new_packet = packet_queue_get(&is->audioq, pkt, 1)) < 0)
+		if ((new_packet = packet_queue_get(&is->audioq, pkt, 0)) <= 0)
 			return -1;
 
 		if (pkt->data == flush_pkt.data) {
@@ -2516,6 +2526,7 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 
 	audio_callback_time = av_gettime();
 
+    
 	while (len > 0) {
 		if (is->audio_buf_index >= is->audio_buf_size) {
 			audio_size = audio_decode_frame(is, &pts);
@@ -2533,7 +2544,10 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 		len1 = is->audio_buf_size - is->audio_buf_index;
 		if (len1 > len)
 			len1 = len;
-		memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+		//memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+
+        SDL_MixAudio(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1, g_volume);
+
 		len -= len1;
 		stream += len1;
 		is->audio_buf_index += len1;
@@ -2653,9 +2667,10 @@ static int stream_component_open(VideoState *is, int stream_index)
 		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
 		return AVERROR_OPTION_NOT_FOUND;
 	}
-
+    
 	/* prepare audio output */
 	//准备SDL音频输出
+    //channel_layout 为3，其实是AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT的组合
 	if (avctx->codec_type == AVMEDIA_TYPE_AUDIO) {
 		int audio_hw_buf_size = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_src);
 		if (audio_hw_buf_size < 0)
@@ -3470,11 +3485,6 @@ static void event_loop(VideoState *cur_stream)
 			case SDLK_RIGHT:
 				incr = 10.0;
 				goto do_seek;
-			case SDLK_UP:
-				incr = 60.0;
-				goto do_seek;
-			case SDLK_DOWN:
-				incr = -60.0;
 do_seek:
 				if (seek_by_bytes) {
 					if (cur_stream->video_stream >= 0 && cur_stream->video_current_pos >= 0) {
@@ -3495,6 +3505,16 @@ do_seek:
 					stream_seek(cur_stream, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
 				}
 				break;
+            case SDLK_UP:
+                g_volume += 10;
+                if (g_volume > 128)
+                    g_volume = 128;
+                break;
+            case SDLK_DOWN:
+                g_volume -= 10;
+                if (g_volume < 0)
+                    g_volume = 0;
+                break;
 			default:
 				break;
 			}
@@ -3821,6 +3841,7 @@ int ffmfc_play(LPVOID lpParam)
 	char dummy_videodriver[] = "SDL_VIDEODRIVER=dummy";
 
 
+    g_display_frame_num = 0;
 	//   av_log_set_flags(AV_LOG_SKIP_REPEATED);
 	//    parse_loglevel(argc, argv, options);
 
@@ -3874,7 +3895,7 @@ int ffmfc_play(LPVOID lpParam)
 		SDL_putenv(dummy_videodriver); /* For the event queue, we always need a video driver. */
 #else
 	char sdl_var[128]; 
-	//sprintf(sdl_var, "SDL_WINDOWID=0x%lx", hWnd );//主窗口句柄 
+    //sprintf(sdl_var, "SDL_WINDOWID=0x%lx", GetConsoleWindow());//主窗口句柄 
 	SDL_putenv(sdl_var); 
 	char *myvalue = SDL_getenv("SDL_WINDOWID");
 #endif
