@@ -160,14 +160,6 @@ UINT Thread_Play(LPVOID lpParam){
 	return 0;
 }
 
-void ffmpeg_log_callback(void* avcl, int level, const char* pFormat, va_list vl)
-{
-#if 0
-    char buf[256] = { 0 };
-    vsnprintf(buf, 255, pFormat, vl);
-    printf("%s", buf);
-#endif
-}
 
 // CffplaymfcDlg 消息处理程序
 
@@ -226,11 +218,9 @@ BOOL CffplaymfcDlg::OnInitDialog()
 	}
 
     //m_inputurl.SetWindowText(_T("http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8"));
-    m_inputurl.SetWindowText(_T("http://127.0.0.1/ppft=4.MP4"));
-
-    av_log_set_callback(ffmpeg_log_callback);
-
-	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+    m_inputurl.SetWindowText(_T("http://127.0.0.1:9007/record.m3u8?type=ppfile-mp4&serialnum=1&chunk=true&playlink=zuqiu.MP4"));
+    
+    return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
 void CffplaymfcDlg::OnSysCommand(UINT nID, LPARAM lParam)

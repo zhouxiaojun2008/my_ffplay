@@ -306,7 +306,8 @@ static const char *video_codec_name;
 static int rdftspeed = 20;
 #if CONFIG_AVFILTER
 //static char *vfilters = "movie=aqiyi.png[wm];[in][wm]overlay=10:10[out]"; // 左上角
-static char *vfilters = "movie=pp.png[wm];[in][wm]overlay=main_w-overlay_w-20:20[out]"; //右上角
+//static char *vfilters = "movie=pp.png[wm];[in][wm]overlay=main_w-overlay_w-20:20[out]"; //右上角
+static char *vfilters = "[in]split[main][tmp];[tmp]crop=iw:ih/2,vflip[flip];[main][flip]overlay=0:H/2[out]"; //右上角
 //static char *vfilters = NULL;
 #endif
 
@@ -3873,8 +3874,8 @@ int ffmfc_play(LPVOID lpParam)
 	 GetWindowTextA(dlg->m_inputurl,(LPSTR)input_filename,MAX_URL_LENGTH);
 	//show_banner(argc, argv, options);
 	//获取播放的首选项
-	int opt_argc=0;
-	char **opt_argv=NULL;
+	int opt_argc=4;
+    char *opt_argv[] = {"test","-v" ,"debug","-report"};
 
 	parse_options(NULL, opt_argc, opt_argv, options, opt_input_file);
 	
