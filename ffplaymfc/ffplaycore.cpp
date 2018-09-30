@@ -1381,7 +1381,7 @@ static int video_open(VideoState *is, int force_set_video_mode)
 		do_exit(is);
 	}
 	//注意：设置视频窗口标题！
-	window_title="Video Window";
+	window_title=is->filename;
 	if (!window_title)
 		window_title = input_filename;
 	SDL_WM_SetCaption(window_title, window_title);
@@ -1570,8 +1570,11 @@ static void video_refresh(void *opaque)
 	SubPicture *sp, *sp2;
 
 	if (is->video_st) {
+#if 0
 		if (is->force_refresh)
 			pictq_prev_picture(is);
+#endif
+
 retry:
 		if (is->pictq_size == 0) {
 			SDL_LockMutex(is->pictq_mutex);
@@ -2545,9 +2548,9 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 		len1 = is->audio_buf_size - is->audio_buf_index;
 		if (len1 > len)
 			len1 = len;
-		//memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+		memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
 
-        SDL_MixAudio(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1, g_volume);
+        //SDL_MixAudio(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1, g_volume);
 
 		len -= len1;
 		stream += len1;
@@ -3547,7 +3550,8 @@ do_seek:
             else
             {
                 x = event.motion.x;
-                if (seek_by_bytes || cur_stream->ic->duration <= 0) {
+                if (seek_by_bytes || cur_stream->ic->duration <= 1000000LL) {
+                    break;//时长小于1s的，无法seek
                     uint64_t size = avio_size(cur_stream->ic->pb);
                     stream_seek(cur_stream, size*x/cur_stream->width, 0, 1);
                 } else {

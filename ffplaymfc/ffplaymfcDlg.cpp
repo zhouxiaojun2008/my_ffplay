@@ -217,8 +217,8 @@ BOOL CffplaymfcDlg::OnInitDialog()
 		OnBnClickedStart();
 	}
 
-    //m_inputurl.SetWindowText(_T("http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8"));
-    m_inputurl.SetWindowText(_T("http://127.0.0.1:9007/record.m3u8?type=ppfile-mp4&serialnum=1&chunk=true&playlink=zuqiu.MP4"));
+    m_inputurl.SetWindowText(_T("http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8"));
+    //m_inputurl.SetWindowText(_T("http://127.0.0.1:9007/record.m3u8?type=ppfile-mp4&serialnum=1&chunk=true&playlink=zuqiu.MP4"));
     
     return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
